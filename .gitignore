@@ -49,6 +49,12 @@
 ExportedObj/
 .consulo/
 *.csproj
+!/Tools/CompileCheck/BattleSimulator.CompileCheck.csproj
+!/Tools/Smoke/SimulationSmoke.csproj
+/Tools/CompileCheck/bin/
+/Tools/CompileCheck/obj/
+/Tools/Smoke/bin/
+/Tools/Smoke/obj/
 *.unityproj
 *.sln
 *.suo

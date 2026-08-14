@@ -1,4 +1,6 @@
 using UnityEngine;
+using BattleSimulator.Presentation;
+using BattleSimulator.Simulation;
 
 namespace BattleSimulator.Core
 {
@@ -12,6 +14,7 @@ namespace BattleSimulator.Core
         public static BattleBootstrap Instance { get; private set; }
 
         public SimulationClock SimulationClock { get; private set; }
+        public BattleSimulationHost SimulationHost { get; private set; }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         private static void EnsureRuntimeExists()
@@ -42,6 +45,10 @@ namespace BattleSimulator.Core
             {
                 SimulationClock = gameObject.AddComponent<SimulationClock>();
             }
+
+            SimulationHost = GetComponent<BattleSimulationHost>();
+            if (SimulationHost == null) SimulationHost = gameObject.AddComponent<BattleSimulationHost>();
+            if (GetComponent<BattleObserverView>() == null) gameObject.AddComponent<BattleObserverView>();
 
             Application.targetFrameRate = SimulationConstants.DefaultTargetFrameRate;
         }

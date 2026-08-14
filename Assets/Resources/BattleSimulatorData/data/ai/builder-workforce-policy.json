@@ -1,0 +1,225 @@
+{
+  "version": 2,
+  "principle": "Builder strength is bounded by faction policy and scales with real construction, repair, harvesting, and emergency workload rather than completed-building count. Lost builders are replaced to the highest workforce level the faction has reached.",
+  "profiles": {
+    "space_marines": {
+      "builder": "Servitor",
+      "startingMin": 2,
+      "startingMax": 4,
+      "growthMultiplier": 2,
+      "hardCap": 8,
+      "replaceDead": true,
+      "perBuilding": 0,
+      "heavyBonus": 0,
+      "heavyTypes": [],
+      "reserveBase": 3,
+      "reserveEvery": 4,
+      "repairReserve": 2,
+      "gatherReserve": 1,
+      "constructionReserve": 3
+    },
+    "imperial_guard": {
+      "builder": "Combat Engineer",
+      "startingMin": 1,
+      "startingMax": 2,
+      "growthMultiplier": 2,
+      "hardCap": 4,
+      "replaceDead": true,
+      "perBuilding": 0,
+      "heavyBonus": 0,
+      "heavyTypes": [],
+      "reserveBase": 3,
+      "reserveEvery": 4,
+      "repairReserve": 2,
+      "gatherReserve": 2,
+      "constructionReserve": 2
+    },
+    "adeptus_mechanicus": {
+      "builder": "Servitor / Tech-Adept",
+      "startingMin": 2,
+      "startingMax": 4,
+      "growthMultiplier": 2,
+      "hardCap": 8,
+      "replaceDead": true,
+      "perBuilding": 0,
+      "heavyBonus": 1,
+      "heavyTypes": [
+        "workshop",
+        "researchcenter",
+        "refinery",
+        "generator",
+        "signature"
+      ],
+      "reserveBase": 3,
+      "reserveEvery": 3,
+      "repairReserve": 2,
+      "gatherReserve": 2,
+      "constructionReserve": 2
+    },
+    "chaos": {
+      "builder": "Dark Servitor / Cult Laborer",
+      "startingMin": 2,
+      "startingMax": 4,
+      "growthMultiplier": 2,
+      "hardCap": 8,
+      "replaceDead": true,
+      "perBuilding": 0,
+      "heavyBonus": 0,
+      "heavyTypes": [],
+      "reserveBase": 3,
+      "reserveEvery": 4,
+      "repairReserve": 1,
+      "gatherReserve": 2,
+      "constructionReserve": 2
+    },
+    "orks": {
+      "builder": "Gretchin",
+      "startingMin": 6,
+      "startingMax": 8,
+      "growthMultiplier": 2,
+      "hardCap": 16,
+      "replaceDead": true,
+      "perBuilding": 0,
+      "heavyBonus": 1,
+      "heavyTypes": [
+        "workshop",
+        "refinery",
+        "generator",
+        "dropbay",
+        "signature"
+      ],
+      "reserveBase": 5,
+      "reserveEvery": 2,
+      "repairReserve": 3,
+      "gatherReserve": 4,
+      "constructionReserve": 4
+    },
+    "necrons": {
+      "builder": "Canoptek Scarab",
+      "startingMin": 6,
+      "startingMax": 8,
+      "growthMultiplier": 2,
+      "hardCap": 16,
+      "replaceDead": true,
+      "perBuilding": 0,
+      "heavyBonus": 1,
+      "heavyTypes": [
+        "outpost",
+        "workshop",
+        "fieldhospital",
+        "researchcenter",
+        "signature"
+      ],
+      "reserveBase": 5,
+      "reserveEvery": 3,
+      "repairReserve": 4,
+      "gatherReserve": 3,
+      "constructionReserve": 3
+    },
+    "tau": {
+      "builder": "Earth Caste Engineer",
+      "startingMin": 2,
+      "startingMax": 4,
+      "growthMultiplier": 2,
+      "hardCap": 8,
+      "replaceDead": true,
+      "perBuilding": 0,
+      "heavyBonus": 0,
+      "heavyTypes": [],
+      "reserveBase": 2,
+      "reserveEvery": 4,
+      "repairReserve": 2,
+      "gatherReserve": 1,
+      "constructionReserve": 1
+    },
+    "tyranids": {
+      "builder": "Ripper Tendril",
+      "startingMin": 2,
+      "startingMax": 4,
+      "growthMultiplier": 2,
+      "hardCap": 8,
+      "replaceDead": true,
+      "perBuilding": 0,
+      "heavyBonus": 1,
+      "heavyTypes": [
+        "workshop",
+        "refinery",
+        "farm",
+        "mine",
+        "fieldhospital",
+        "signature"
+      ],
+      "reserveBase": 4,
+      "reserveEvery": 3,
+      "repairReserve": 2,
+      "gatherReserve": 4,
+      "constructionReserve": 3
+    }
+  },
+  "subfactionOverrides": {
+    "Iron Hands": {
+      "reserveBaseBonus": 1,
+      "repairReserveBonus": 1
+    },
+    "Salamanders": {
+      "repairReserveBonus": 1
+    },
+    "Imperial Fists": {
+      "constructionReserveBonus": 1
+    },
+    "Steel Legion": {
+      "repairReserveBonus": 1
+    },
+    "Death Korps of Krieg": {
+      "constructionReserveBonus": 1
+    },
+    "Mars Forge": {
+      "heavyBonusAdd": 1,
+      "repairReserveBonus": 1
+    },
+    "Ryza Forge": {
+      "heavyBonusAdd": 1
+    },
+    "Graia Forge": {
+      "repairReserveBonus": 1
+    },
+    "Speed Freeks": {
+      "repairReserveBonus": 2,
+      "gatherReserveBonus": 1
+    },
+    "Deathskull Mob": {
+      "gatherReserveBonus": 2,
+      "repairReserveBonus": 1
+    },
+    "Repair Cohort": {
+      "perBuildingAdd": 1,
+      "repairReserveBonus": 3
+    },
+    "Hydra": {
+      "gatherReserveBonus": 2,
+      "constructionReserveBonus": 1
+    },
+    "Spore Web": {
+      "perBuildingAdd": 1,
+      "constructionReserveBonus": 1
+    },
+    "Iron Warriors": {
+      "constructionReserveBonus": 1,
+      "repairReserveBonus": 1
+    },
+    "Death Guard": {
+      "repairReserveBonus": 1
+    }
+  },
+  "priorityOrder": [
+    "self-preservation",
+    "repair-critical-home-building",
+    "finish-current-construction",
+    "repair-critical-building",
+    "assist-construction",
+    "repair-home-building",
+    "harvest-gather-salvage",
+    "routine-maintenance",
+    "idle-near-home"
+  ]
+}
