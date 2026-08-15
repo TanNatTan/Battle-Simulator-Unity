@@ -1,10 +1,11 @@
 using UnityEngine;
+using BattleSimulator.Data;
 
 namespace BattleSimulator.Simulation
 {
     public static class BattleEntityFactory
     {
-        public static UnitState CreateUnit(PlayerState player, UnitRole role, Vector2 position, string name = null)
+        public static UnitState CreateUnit(PlayerState player, UnitRole role, Vector2 position, string name = null, BattleDataRepository data = null)
         {
             bool vehicle = role == UnitRole.Vehicle;
             bool aircraft = role == UnitRole.Aircraft;
@@ -40,15 +41,20 @@ namespace BattleSimulator.Simulation
                     ? ProjectileBehavior.Explosive | ProjectileBehavior.Suppression | ProjectileBehavior.AntiInfantry
                     : ProjectileBehavior.Ricochet
             };
+            unit.Specialty = name ?? role.ToString();
+            if (data != null) UnitArchetypeCatalog.Configure(unit, player, unit.Specialty, data);
             return unit;
         }
 
-        public static BuildingState CreateBuilding(PlayerState player, BuildingType type, Vector2 position, float constructionProgress = 1f)
+        public static BuildingState CreateBuilding(PlayerState player, BuildingType type, Vector2 position, float constructionProgress = 1f, string operationalRole = null)
         {
             float maximumHitPoints = type == BuildingType.Headquarters ? 1200f : type == BuildingType.Defense ? 650f : 720f;
+            string role = operationalRole ?? OperationalRole(type);
+            string label = FactionCatalog.For(player.Faction).BuildingLabel(role);
             return new BuildingState
             {
-                Name = type.ToString(),
+                Name = label,
+                DisplayName = label,
                 Kind = EntityKind.Building,
                 OwnerId = player.Id,
                 TeamId = player.TeamId,
@@ -57,9 +63,49 @@ namespace BattleSimulator.Simulation
                 HitPoints = maximumHitPoints * Mathf.Clamp01(constructionProgress),
                 MaximumHitPoints = maximumHitPoints,
                 BuildingType = type,
+                OperationalRole = role,
+                Subfaction = player.Subfaction,
                 ConstructionProgress = constructionProgress,
                 Operational = constructionProgress >= 1f
             };
+        }
+
+        public static BuildingType BuildingTypeForRole(string role)
+        {
+            switch (role)
+            {
+                case "HQ": return BuildingType.Headquarters;
+                case "Muster": return BuildingType.Barracks;
+                case "War Forge": return BuildingType.Workshop;
+                case "Deployment": return BuildingType.AirSupport;
+                case "Doctrine": return BuildingType.Research;
+                case "Sustainment": return BuildingType.Hospital;
+                case "Logistics": return BuildingType.Warehouse;
+                case "Power": return BuildingType.Generator;
+                case "Fortification": case "Emplacement": case "Signature": return BuildingType.Defense;
+                case "Industry": return BuildingType.ResourceExtractor;
+                case "Intel": return BuildingType.ForwardOutpost;
+                default: return BuildingType.Barracks;
+            }
+        }
+
+        public static string OperationalRole(BuildingType type)
+        {
+            switch (type)
+            {
+                case BuildingType.Headquarters: return "HQ";
+                case BuildingType.Barracks: return "Muster";
+                case BuildingType.Workshop: return "War Forge";
+                case BuildingType.AirSupport: return "Deployment";
+                case BuildingType.Research: return "Doctrine";
+                case BuildingType.Hospital: return "Sustainment";
+                case BuildingType.Warehouse: return "Logistics";
+                case BuildingType.Generator: return "Power";
+                case BuildingType.Defense: return "Fortification";
+                case BuildingType.ResourceExtractor: return "Industry";
+                case BuildingType.ForwardOutpost: return "Intel";
+                default: return type.ToString();
+            }
         }
     }
 }

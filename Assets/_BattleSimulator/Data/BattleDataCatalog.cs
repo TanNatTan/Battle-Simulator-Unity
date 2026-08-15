@@ -32,5 +32,8 @@ namespace BattleSimulator.Data
         public static string EconomyCosts => LoadJson("economy/costs");
         public static string EconomyResources => LoadJson("economy/resources");
         public static string EconomicMapPresets => LoadJson("maps/economic-presets");
+        public static string ArmyCompositions => LoadJson("ai/army-compositions");
+        public static string BuildingDiversityPolicy => LoadJson("ai/building-diversity-policy");
+        public static string WargearDoctrines => LoadJson("ai/wargear-doctrines");
     }
 }

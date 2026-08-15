@@ -4,18 +4,19 @@ using UnityEngine;
 
 namespace BattleSimulator.Simulation.Systems
 {
-    public sealed class AutonomousAISystem : IBattleSystem
+    public sealed class AutonomousAISystem : IBattleSystem, ICadencedBattleSystem
     {
         private readonly List<int> nearbyIds = new List<int>(128);
 
         public int Order => 100;
+        public float UpdatesPerSecond => 10f;
 
         public void Tick(BattleWorld world, SimulationStep step)
         {
             for (int i = 0; i < world.Units.Count; i++)
             {
                 UnitState unit = world.Units[i];
-                if (!unit.Active || unit.IsDead || !unit.CombatCapable && unit.Role != UnitRole.Builder && unit.Role != UnitRole.SupplyCarrier) continue;
+                if (!unit.Active || unit.IsDead || unit.EmbarkedInId > 0 || !unit.CombatCapable && unit.Role != UnitRole.Builder && unit.Role != UnitRole.SupplyCarrier) continue;
                 UnitState enemy = FindVisibleEnemy(world, unit);
                 if (enemy != null)
                 {
@@ -67,6 +68,15 @@ namespace BattleSimulator.Simulation.Systems
                     continue;
                 }
 
+                SquadState squad = world.GetSquad(unit.SquadId);
+                if (squad != null && squad.Objective != Vector2.zero)
+                {
+                    unit.Destination = squad.Objective;
+                    unit.Order = squad.PrimaryRole == SquadPrimaryRole.Capture || squad.PrimaryRole == SquadPrimaryRole.Reconnaissance
+                        ? UnitOrder.Capture : UnitOrder.Move;
+                    continue;
+                }
+
                 TerritoryCellState territory = NearestUncontrolledTerritory(world, unit);
                 if (territory != null)
                 {
@@ -81,7 +91,7 @@ namespace BattleSimulator.Simulation.Systems
             float scanRange = Mathf.Max(unit.VisionRange, unit.AuspexRange * 0.72f);
             world.Spatial.Query(unit.Position, scanRange, nearbyIds);
             UnitState best = null;
-            float bestDistance = float.PositiveInfinity;
+            float bestScore = float.NegativeInfinity;
             Vector2 facing = new Vector2(Mathf.Cos(unit.FacingRadians), Mathf.Sin(unit.FacingRadians));
             for (int i = 0; i < nearbyIds.Count; i++)
             {
@@ -94,10 +104,14 @@ namespace BattleSimulator.Simulation.Systems
                     || Vector2.Angle(facing, offset) <= unit.VisionArcDegrees * 0.5f);
                 bool auspex = distance <= unit.AuspexRange && (!candidate.Camouflaged || distance <= unit.AuspexRange * 0.55f);
                 if (!optical && !auspex) continue;
-                if (distance < bestDistance)
+                // Threat first, but consciously finish enemies whose condition has collapsed.
+                float finishBonus = candidate.Condition <= 0.28f ? 180f * (1f - candidate.Condition) : 0f;
+                float threatBonus = candidate.Role == UnitRole.Commander ? 45f : candidate.Role == UnitRole.Medic ? 24f : candidate.Role == UnitRole.Vehicle ? 34f : 0f;
+                float score = finishBonus + threatBonus - distance;
+                if (score > bestScore)
                 {
                     best = candidate;
-                    bestDistance = distance;
+                    bestScore = score;
                 }
             }
             return best;

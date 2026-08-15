@@ -16,7 +16,7 @@ namespace BattleSimulator.Simulation.Systems
             for (int i = 0; i < world.Units.Count; i++)
             {
                 UnitState unit = world.Units[i];
-                if (!unit.Active) continue;
+                if (!unit.Active || unit.IsDead || unit.EmbarkedInId > 0) continue;
                 Vector2 desired = DesiredVelocity(world, unit);
                 desired += Separation(world, unit);
                 unit.Velocity = Vector2.MoveTowards(unit.Velocity, desired, unit.Acceleration * dt);
@@ -85,11 +85,13 @@ namespace BattleSimulator.Simulation.Systems
             return Vector2.ClampMagnitude(force, unit.Speed * 0.8f);
         }
 
-        private static bool CollidesWithBuilding(BattleWorld world, UnitState unit, Vector2 candidate)
+        private bool CollidesWithBuilding(BattleWorld world, UnitState unit, Vector2 candidate)
         {
-            for (int i = 0; i < world.Buildings.Count; i++)
+            world.Spatial.Query(candidate, unit.Radius + 26f, nearbyIds);
+            for (int i = 0; i < nearbyIds.Count; i++)
             {
-                BuildingState building = world.Buildings[i];
+                BuildingState building = world.GetEntity<BuildingState>(nearbyIds[i]);
+                if (building == null) continue;
                 if (!building.Active) continue;
                 if (Vector2.Distance(candidate, building.Position) < unit.Radius + building.Radius + 1f) return true;
             }

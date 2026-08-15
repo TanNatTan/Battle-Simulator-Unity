@@ -95,6 +95,12 @@ namespace BattleSimulator.Simulation.Systems
         {
             float armorFactor = (projectile.Behavior & ProjectileBehavior.AntiArmor) != 0 ? 1f : Mathf.Clamp01(projectile.Penetration / 24f);
             float damage = Mathf.Max(1f, rawDamage * Mathf.Lerp(0.55f, 1f, armorFactor));
+            if (target is UnitState shielded && shielded.IronHalo > 0f)
+            {
+                float absorbed = Mathf.Min(shielded.IronHalo, damage);
+                shielded.IronHalo -= absorbed; shielded.IronHaloLastHitAt = world.Time; damage -= absorbed;
+            }
+            if (damage <= 0f) return;
             target.HitPoints = Mathf.Max(0f, target.HitPoints - damage);
             if (target is UnitState unit)
             {
@@ -104,11 +110,21 @@ namespace BattleSimulator.Simulation.Systems
                 world.Events.Publish(new BattleEvent(BattleEventType.UnitWounded, world.Time, unit.Id, projectile.OwnerId, unit.Position, $"{unit.Name} was hit."));
                 if (unit.HitPoints <= 0f && !unit.IsDead)
                 {
+                    bool catastrophic = rawDamage >= unit.MaximumHitPoints * 0.72f || (projectile.Behavior & ProjectileBehavior.AntiInfantry) == 0 && (projectile.Behavior & ProjectileBehavior.Explosive) != 0;
+                    if (!catastrophic && !unit.Incapacitated)
+                    {
+                        unit.HitPoints = unit.MaximumHitPoints * 0.08f;
+                        unit.Incapacitated = true; unit.CombatCapable = false; unit.Bleeding = 1.5f;
+                        unit.Velocity = Vector2.zero; unit.Order = UnitOrder.Idle;
+                        return;
+                    }
                     unit.IsDead = true;
                     unit.DeathTime = world.Time;
                     unit.CombatCapable = false;
                     unit.Velocity = Vector2.zero;
                     unit.Order = UnitOrder.Idle;
+                    PlayerState victimOwner = world.GetPlayer(unit.OwnerId); if (victimOwner != null) victimOwner.Casualties++;
+                    PlayerState killerOwner = world.GetPlayer(projectile.OwnerId); if (killerOwner != null) killerOwner.UnitsKilled++;
                     world.Events.Publish(new BattleEvent(BattleEventType.UnitKilled, world.Time, unit.Id, projectile.OwnerId, unit.Position, $"{unit.Name} was killed."));
                 }
             }
@@ -116,6 +132,7 @@ namespace BattleSimulator.Simulation.Systems
             {
                 building.Operational = false;
                 building.Active = false;
+                PlayerState destroyer = world.GetPlayer(projectile.OwnerId); if (destroyer != null) destroyer.BuildingsDestroyed++;
                 world.Events.Publish(new BattleEvent(BattleEventType.BaseAttacked, world.Time, building.Id, projectile.OwnerId, building.Position, $"{building.Name} was destroyed."));
             }
         }

@@ -13,6 +13,7 @@ namespace BattleSimulator.Presentation
         private bool showTerrain = true;
         private bool showMinimap = true;
         private float smoothedFps = 60f;
+        private int observedPlayerIndex;
         private GUIStyle smallStyle;
         private GUIStyle titleStyle;
 
@@ -44,7 +45,7 @@ namespace BattleSimulator.Presentation
         private void DrawTopBar(BattleWorld world)
         {
             GUI.Box(new Rect(0f, 0f, Screen.width, 42f), GUIContent.none);
-            GUI.Label(new Rect(12f, 8f, 260f, 28f), "W40K AUTONOMOUS WAR THEATER — UNITY", titleStyle);
+            GUI.Label(new Rect(12f, 8f, 260f, 28f), "W40K AUTONOMOUS WAR THEATER - UNITY", titleStyle);
             float x = 310f;
             string pauseLabel = clock.IsPaused ? "Resume" : "Pause";
             if (GUI.Button(new Rect(x, 8f, 72f, 26f), pauseLabel)) clock.SetPaused(!clock.IsPaused);
@@ -58,6 +59,8 @@ namespace BattleSimulator.Presentation
             if (GUI.Button(new Rect(x, 8f, 104f, 26f), showTerrain ? "Hide terrain" : "Show terrain")) showTerrain = !showTerrain;
             x += 110f;
             if (GUI.Button(new Rect(x, 8f, 104f, 26f), showMinimap ? "Hide minimap" : "Show minimap")) showMinimap = !showMinimap;
+            x += 110f;
+            if (world.Players.Count > 0 && GUI.Button(new Rect(x, 8f, 150f, 26f), $"View: {world.Players[observedPlayerIndex % world.Players.Count].Name}")) observedPlayerIndex = (observedPlayerIndex + 1) % world.Players.Count;
             GUI.Label(new Rect(Screen.width - 155f, 11f, 145f, 24f), $"FPS {smoothedFps:0}  Tick {world.Tick}", smallStyle);
         }
 
@@ -82,6 +85,7 @@ namespace BattleSimulator.Presentation
             for (int i = 0; i < world.Buildings.Count; i++)
             {
                 BuildingState building = world.Buildings[i];
+                if (!CanObserve(world, building)) continue;
                 Rect rect = WorldRect(world, map, building.Position, Vector2.one * building.Radius * 2f);
                 DrawRect(rect, PlayerColor(world, building.OwnerId, building.Operational ? 0.9f : 0.42f));
                 GUI.Label(new Rect(rect.x, rect.y - 14f, Mathf.Max(60f, rect.width), 16f), building.Name, smallStyle);
@@ -89,7 +93,7 @@ namespace BattleSimulator.Presentation
             for (int i = 0; i < world.Units.Count; i++)
             {
                 UnitState unit = world.Units[i];
-                if (!unit.Active) continue;
+                if (!unit.Active || !CanObserve(world, unit)) continue;
                 float size = unit.Role == UnitRole.Vehicle ? 10f : unit.Role == UnitRole.Aircraft ? 9f : 6f;
                 Vector2 screen = WorldToScreen(world, map, unit.Position);
                 Rect rect = new Rect(screen.x - size * 0.5f, screen.y - size * 0.5f, size, size);
@@ -115,7 +119,7 @@ namespace BattleSimulator.Presentation
                 for (int i = 0; i < world.Buildings.Count; i++) if (world.Buildings[i].Active && world.Buildings[i].OwnerId == player.Id) buildings++;
                 for (int i = 0; i < world.TerritoryCells.Count; i++) if (world.TerritoryCells[i].OwnerId == player.Id) territories++;
                 GUI.color = player.PrimaryColor;
-                GUI.Label(new Rect(sidebar.x + 10f, y, 230f, 20f), $"{player.Name} — {player.Subfaction}", titleStyle); GUI.color = Color.white; y += 22f;
+                GUI.Label(new Rect(sidebar.x + 10f, y, 230f, 20f), $"{player.Name} - {player.Subfaction}", titleStyle); GUI.color = Color.white; y += 22f;
                 GUI.Label(new Rect(sidebar.x + 10f, y, 230f, 58f), $"Units {units}   Buildings {buildings}\nTerritories {territories}\nReq {player.Resource(ResourceType.Requisition):0}  Food {player.Resource(ResourceType.Food):0}", smallStyle); y += 66f;
             }
             if (showMinimap)
@@ -125,13 +129,13 @@ namespace BattleSimulator.Presentation
                 for (int i = 0; i < world.Units.Count; i++)
                 {
                     UnitState unit = world.Units[i];
-                    if (!unit.Active || unit.IsDead) continue;
+                    if (!unit.Active || unit.IsDead || !CanObserve(world, unit)) continue;
                     Vector2 point = new Vector2(mini.x + unit.Position.x / world.Width * mini.width, mini.yMax - unit.Position.y / world.Height * mini.height);
                     DrawRect(new Rect(point.x - 1f, point.y - 1f, 3f, 3f), PlayerColor(world, unit.OwnerId, 1f));
                 }
                 Rect camera = MinimapCameraRect(world, mini);
                 DrawOutline(camera, Color.white);
-                GUI.Label(new Rect(mini.x, mini.y - 22f, mini.width, 20f), $"MINIMAP  •  FPS {smoothedFps:0}", smallStyle);
+                GUI.Label(new Rect(mini.x, mini.y - 22f, mini.width, 20f), $"MINIMAP  |  FPS {smoothedFps:0}", smallStyle);
                 Event current = Event.current;
                 if (current.type == EventType.MouseDown && current.button == 0 && mini.Contains(current.mousePosition))
                 {
@@ -188,6 +192,14 @@ namespace BattleSimulator.Presentation
         private Color PlayerColor(BattleWorld world, int ownerId, float alpha)
         {
             PlayerState player = world.GetPlayer(ownerId); Color color = player?.PrimaryColor ?? Color.gray; color.a = alpha; return color;
+        }
+
+        private bool CanObserve(BattleWorld world, BattleEntityState entity)
+        {
+            if (world.Players.Count == 0 || entity.OwnerId <= 0) return true;
+            PlayerState observer = world.Players[observedPlayerIndex % world.Players.Count];
+            if (world.AreAllies(observer.Id, entity.OwnerId)) return true;
+            return observer.IntelContacts.TryGetValue(entity.Id, out IntelContactRecord contact) && contact.ExpiresAt >= world.Time;
         }
 
         private static Color ResourceColor(ResourceType type)

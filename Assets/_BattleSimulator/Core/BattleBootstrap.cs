@@ -49,6 +49,7 @@ namespace BattleSimulator.Core
             SimulationHost = GetComponent<BattleSimulationHost>();
             if (SimulationHost == null) SimulationHost = gameObject.AddComponent<BattleSimulationHost>();
             if (GetComponent<BattleObserverView>() == null) gameObject.AddComponent<BattleObserverView>();
+            if (GetComponent<BattleSetupView>() == null) gameObject.AddComponent<BattleSetupView>();
 
             Application.targetFrameRate = SimulationConstants.DefaultTargetFrameRate;
         }

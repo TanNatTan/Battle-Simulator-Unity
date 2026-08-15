@@ -11,11 +11,15 @@ namespace BattleSimulator.Simulation
         private readonly List<BuildingState> buildings = new List<BuildingState>();
         private readonly List<ProjectileState> projectiles = new List<ProjectileState>();
         private readonly List<ResourceZoneState> resourceZones = new List<ResourceZoneState>();
+        private readonly List<EconomicNodeState> economicNodes = new List<EconomicNodeState>();
+        private readonly List<TradeRouteState> tradeRoutes = new List<TradeRouteState>();
         private readonly List<TerritoryCellState> territoryCells = new List<TerritoryCellState>();
+        private readonly List<SquadState> squads = new List<SquadState>();
         private readonly List<PlayerState> players = new List<PlayerState>();
         private readonly List<int> removalBuffer = new List<int>();
         private readonly Stack<ProjectileState> projectilePool = new Stack<ProjectileState>();
         private int nextEntityId = 1;
+        private int nextSquadId = 1;
 
         public BattleWorld(float width, float height, int seed = 742918)
         {
@@ -40,7 +44,10 @@ namespace BattleSimulator.Simulation
         public IReadOnlyList<BuildingState> Buildings => buildings;
         public IReadOnlyList<ProjectileState> Projectiles => projectiles;
         public IReadOnlyList<ResourceZoneState> ResourceZones => resourceZones;
+        public IReadOnlyList<EconomicNodeState> EconomicNodes => economicNodes;
+        public IReadOnlyList<TradeRouteState> TradeRoutes => tradeRoutes;
         public IReadOnlyList<TerritoryCellState> TerritoryCells => territoryCells;
+        public IReadOnlyList<SquadState> Squads => squads;
         public IReadOnlyList<PlayerState> Players => players;
 
         public void AddPlayer(PlayerState player)
@@ -57,8 +64,25 @@ namespace BattleSimulator.Simulation
             else if (entity is BuildingState building) buildings.Add(building);
             else if (entity is ProjectileState projectile) projectiles.Add(projectile);
             else if (entity is ResourceZoneState resourceZone) resourceZones.Add(resourceZone);
+            else if (entity is EconomicNodeState economicNode) economicNodes.Add(economicNode);
             return entity;
         }
+
+        public SquadState AddSquad(SquadState squad)
+        {
+            if (squad.Id <= 0) squad.Id = nextSquadId++;
+            else nextSquadId = Mathf.Max(nextSquadId, squad.Id + 1);
+            squads.Add(squad);
+            return squad;
+        }
+
+        public SquadState GetSquad(int id)
+        {
+            for (int i = 0; i < squads.Count; i++) if (squads[i].Id == id) return squads[i];
+            return null;
+        }
+
+        public void AddTradeRoute(TradeRouteState route) => tradeRoutes.Add(route);
 
         public ProjectileState AcquireProjectile()
         {
@@ -129,6 +153,7 @@ namespace BattleSimulator.Simulation
                     projectilePool.Push(projectile);
                 }
                 else if (entity is ResourceZoneState resourceZone) resourceZones.Remove(resourceZone);
+                else if (entity is EconomicNodeState economicNode) economicNodes.Remove(economicNode);
             }
         }
 

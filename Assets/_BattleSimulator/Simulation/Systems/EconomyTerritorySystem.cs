@@ -4,10 +4,11 @@ using UnityEngine;
 
 namespace BattleSimulator.Simulation.Systems
 {
-    public sealed class EconomyTerritorySystem : IBattleSystem
+    public sealed class EconomyTerritorySystem : IBattleSystem, ICadencedBattleSystem
     {
         private readonly Dictionary<int, float> incomeAccumulator = new Dictionary<int, float>();
         public int Order => 500;
+        public float UpdatesPerSecond => 5f;
 
         public void Tick(BattleWorld world, SimulationStep step)
         {
@@ -22,12 +23,19 @@ namespace BattleSimulator.Simulation.Systems
             for (int c = 0; c < world.TerritoryCells.Count; c++)
             {
                 TerritoryCellState cell = world.TerritoryCells[c];
+                if (cell.OwnerId > 0 && HasOperationalOwnerBuilding(world, cell, cell.OwnerId))
+                {
+                    cell.Contested = false;
+                    cell.CapturingPlayerId = 0;
+                    cell.CaptureProgress = 0f;
+                    continue;
+                }
                 int claimant = 0;
                 bool contested = false;
                 for (int i = 0; i < world.Units.Count; i++)
                 {
                     UnitState unit = world.Units[i];
-                    if (!unit.Active || unit.IsDead || !unit.CombatCapable || !Inside(cell, unit.Position)) continue;
+                    if (!unit.Active || unit.IsDead || !unit.CombatCapable || !cell.Contains(unit.Position)) continue;
                     if (claimant == 0) claimant = unit.OwnerId;
                     else if (!world.AreAllies(claimant, unit.OwnerId)) { contested = true; break; }
                 }
@@ -35,9 +43,18 @@ namespace BattleSimulator.Simulation.Systems
                 if (contested || claimant == 0) continue;
                 if (cell.OwnerId == claimant) { cell.CaptureProgress = 0f; cell.CapturingPlayerId = 0; continue; }
                 if (cell.CapturingPlayerId != claimant) { cell.CapturingPlayerId = claimant; cell.CaptureProgress = 0f; }
-                cell.CaptureProgress += dt / 3f;
+                PlayerState capturing = world.GetPlayer(claimant);
+                float captureSeconds = capturing != null && capturing.Faction == "Space Marines" ? 20f / 3f : 20f;
+                int friendlyCapturers = CountCapturers(world, cell, claimant);
+                float teamRate = 1f + Mathf.Max(0, friendlyCapturers - 1) * 0.2f;
+                if (cell.PreviousOwnerId == claimant && !contested) captureSeconds *= 0.5f;
+                cell.CaptureProgress += dt * teamRate / captureSeconds;
                 if (cell.CaptureProgress < 1f) continue;
+                cell.PreviousOwnerId = cell.OwnerId;
                 cell.OwnerId = claimant;
+                cell.CapturedAt = world.Time;
+                PlayerState newOwner = world.GetPlayer(claimant);
+                if (newOwner != null) newOwner.CapturedTerritories++;
                 cell.CaptureProgress = 0f;
                 cell.CapturingPlayerId = 0;
                 world.Events.Publish(new BattleEvent(BattleEventType.TerritoryCaptured, world.Time, cell.Id, claimant, cell.Center, "Territory captured by physical units."));
@@ -97,7 +114,9 @@ namespace BattleSimulator.Simulation.Systems
                     carrier.Destination = warehouse.Position;
                     if (Vector2.Distance(carrier.Position, warehouse.Position) <= warehouse.Radius + 5f)
                     {
-                        world.GetPlayer(carrier.OwnerId)?.AddResource(carrier.CargoType, carrier.Cargo);
+                        PlayerState owner = world.GetPlayer(carrier.OwnerId);
+                        owner?.AddResource(carrier.CargoType, carrier.Cargo);
+                        if (owner != null) owner.ResourcesDelivered += carrier.Cargo;
                         carrier.Cargo = 0f;
                         carrier.AssignedResourceZoneId = 0;
                     }
@@ -120,10 +139,25 @@ namespace BattleSimulator.Simulation.Systems
             }
         }
 
-        private static bool Inside(TerritoryCellState cell, Vector2 point)
+        private static int CountCapturers(BattleWorld world, TerritoryCellState cell, int ownerId)
         {
-            Vector2 half = cell.Size * 0.5f;
-            return Mathf.Abs(point.x - cell.Center.x) <= half.x && Mathf.Abs(point.y - cell.Center.y) <= half.y;
+            int count = 0;
+            for (int i = 0; i < world.Units.Count; i++)
+            {
+                UnitState unit = world.Units[i];
+                if (unit.Active && !unit.IsDead && unit.CombatCapable && unit.OwnerId == ownerId && cell.Contains(unit.Position)) count++;
+            }
+            return count;
+        }
+
+        private static bool HasOperationalOwnerBuilding(BattleWorld world, TerritoryCellState cell, int ownerId)
+        {
+            for (int i = 0; i < world.Buildings.Count; i++)
+            {
+                BuildingState building = world.Buildings[i];
+                if (building.Active && building.Operational && building.OwnerId == ownerId && cell.Contains(building.Position)) return true;
+            }
+            return false;
         }
 
         private static ResourceZoneState AssignedZone(BattleWorld world, UnitState carrier)
